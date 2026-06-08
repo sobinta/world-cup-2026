@@ -59,11 +59,13 @@ const saveOfficialResults = () => {
 
 const resetAllPredictions = () => {
   currentPredictions = window.initialFixtures.map(f => ({ ...f, score1: null, score2: null }));
+  window.currentPredictions = currentPredictions;
   savePredictions();
 };
 
 const resetAllOfficialResults = () => {
   officialResults = window.initialFixtures.map(f => ({ ...f, score1: null, score2: null }));
+  window.officialResults = officialResults;
   saveOfficialResults();
 };
 
