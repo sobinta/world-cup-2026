@@ -949,10 +949,15 @@ body.lang-fa {
   cursor: grab;
   position: relative;
   min-height: 600px;
+  direction: ltr !important; /* Force LTR scroll context to prevent RTL negative scroll overflow bugs */
 }
 
 .bracket-scroll-container:active {
   cursor: grabbing;
+}
+
+#bracket-view-container {
+  width: max-content;
 }
 
 .bracket-wrapper {

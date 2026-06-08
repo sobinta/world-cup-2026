@@ -380,6 +380,16 @@ const renderBracketView = () => {
 
   html += `</div>`; // End Wrapper
   container.innerHTML = html;
+
+  // Programmatically scroll to the center matchup (Finals) on load/render
+  setTimeout(() => {
+    const scrollContainer = document.querySelector('.bracket-scroll-container');
+    if (scrollContainer) {
+      const scrollWidth = scrollContainer.scrollWidth;
+      const clientWidth = scrollContainer.clientWidth;
+      scrollContainer.scrollLeft = (scrollWidth - clientWidth) / 2;
+    }
+  }, 50);
 };
 
 // Helper to render a single matchup block (with symmetrical right-side layout support)
