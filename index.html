@@ -326,6 +326,17 @@
     </div>
   </div>
 
+  <!-- Stadium matches Modal -->
+  <div id="stadium-modal-overlay" class="group-expanded-overlay" onclick="window.closeStadiumModal()">
+    <div class="glass-card group-expanded-modal" onclick="event.stopPropagation()">
+      <button class="close-modal-btn" onclick="window.closeStadiumModal()">&times;</button>
+      <h2 id="stadium-modal-title" style="font-weight:800; color:var(--accent);">بازی‌های ورزشگاه</h2>
+      <div id="stadium-modal-content" style="margin-top:1rem;">
+        <!-- Injected matches list -->
+      </div>
+    </div>
+  </div>
+
   <!-- 3. Goal Alert Notification Banner -->
   <div id="goal-flash-banner" class="goal-banner">
     <!-- Populated dynamically -->

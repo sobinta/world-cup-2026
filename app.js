@@ -49,6 +49,9 @@ document.addEventListener("DOMContentLoaded", () => {
   window.closeTeamModal = () => {
     document.getElementById("team-modal-overlay").classList.remove("active");
   };
+  window.closeStadiumModal = () => {
+    document.getElementById("stadium-modal-overlay").classList.remove("active");
+  };
 });
 
 // --- Theme Selector ---
@@ -726,7 +729,7 @@ const initStadiumsPage = () => {
       : `${stadium.capacity.toLocaleString('en-US')}`;
 
     html += `
-      <div class="glass-card stadium-card">
+      <div class="glass-card stadium-card" style="cursor:pointer;" onclick="window.showStadiumMatches('${stadium.name}')">
         <img src="${stadium.image}" alt="${stadium.name}" class="stadium-img">
         <div class="stadium-info">
           <h3>${stadium.name}</h3>
@@ -851,3 +854,75 @@ window.restartQuiz = () => {
 window.triggerPrint = () => {
   window.print();
 };
+
+window.showStadiumMatches = (stadiumName) => {
+  const overlay = document.getElementById("stadium-modal-overlay");
+  const modalTitle = document.getElementById("stadium-modal-title");
+  const content = document.getElementById("stadium-modal-content");
+
+  if (!overlay || !content) return;
+
+  const currentLang = window.currentLanguage || "fa";
+  modalTitle.textContent = currentLang === "fa" ? `بازی‌های ورزشگاه ${stadiumName}` : `Matches at ${stadiumName}`;
+
+  // Filter matches played at this stadium
+  const stadiumMatches = window.currentPredictions.filter(m => m.stadium === stadiumName);
+
+  let html = "";
+  if (stadiumMatches.length === 0) {
+    html = `<div style="text-align:center; color:var(--text-muted); padding:2rem;">
+      ${currentLang === "fa" ? "هیچ بازی برنامه‌ریزی نشده است." : "No matches scheduled."}
+    </div>`;
+  } else {
+    html += `<div class="matches-list">`;
+    stadiumMatches.forEach(match => {
+      const t1 = window.teamsData[match.team1];
+      const t2 = window.teamsData[match.team2];
+
+      const t1Label = t1 ? (currentLang === "fa" ? t1.nameFa : match.team1) : match.team1;
+      const t2Label = t2 ? (currentLang === "fa" ? t2.nameFa : match.team2) : match.team2;
+
+      const flag1 = t1 ? `https://flagcdn.com/w40/${t1.code}.png` : "";
+      const flag2 = t2 ? `https://flagcdn.com/w40/${t2.code}.png` : "";
+
+      const scoreText = (match.score1 !== null && match.score2 !== null && match.score1 !== "" && match.score2 !== "")
+        ? `<span style="font-size:1.6rem; font-weight:800; color:var(--accent); letter-spacing:5px;">${match.score1} - ${match.score2}</span>`
+        : `<span style="color:var(--text-muted); font-size:1rem; font-weight:600;">VS / در مقابل</span>`;
+
+      html += `
+        <div class="match-card">
+          <div class="match-meta">
+            <span class="stadium-lbl" style="color:var(--glow);">${match.group ? (currentLang === "fa" ? 'گروه ' + match.group : 'Group ' + match.group) : ""}</span>
+            <span>${match.date}</span>
+          </div>
+          <div class="match-prediction-row">
+            <div class="team-prediction home" style="width:160px;">
+              <span class="team-name-lbl" style="margin: 0 8px;">${t1Label}</span>
+              <img src="${flag1}" alt="" class="flag-icon">
+            </div>
+            <div style="flex-grow:0; text-align:center; min-width:80px;">
+              ${scoreText}
+            </div>
+            <div class="team-prediction away" style="width:160px;">
+              <img src="${flag2}" alt="" class="flag-icon">
+              <span class="team-name-lbl" style="margin: 0 8px;">${t2Label}</span>
+            </div>
+          </div>
+        </div>
+      `;
+    });
+    html += `</div>`;
+  }
+
+  content.innerHTML = html;
+  overlay.classList.add("active");
+};
+
+window.closeStadiumModal = () => {
+  const overlay = document.getElementById("stadium-modal-overlay");
+  if (overlay) {
+    overlay.classList.remove("active");
+  }
+};
+window.closeStadiumMatches = window.closeStadiumModal;
+
