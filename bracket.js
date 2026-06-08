@@ -33,22 +33,74 @@ const loadActiveBracketState = () => {
   bracketState = createEmptyBracketState();
 };
 
+// Helper to check if a group's matches are fully played (6 matches)
+const isGroupFinished = (groupLetter) => {
+  const mode = window.bracketViewMode || "prediction";
+  const fixtures = mode === "official" ? window.officialResults : window.currentPredictions;
+  if (!fixtures) return false;
+  const groupFixtures = fixtures.filter(f => f.group === groupLetter);
+  const playedCount = groupFixtures.filter(f => f.score1 !== null && f.score2 !== null && f.score1 !== "" && f.score2 !== "").length;
+  return playedCount === 6;
+};
+
+// Helper to check if a team slot is a placeholder
+const isPlaceholder = (teamName) => {
+  if (!teamName) return true;
+  return teamName.startsWith("Winner Group") || 
+         teamName.startsWith("Runner-up Group") || 
+         teamName.startsWith("3rd Group") || 
+         teamName.includes("/");
+};
+
+// Helper to translate team names and placeholders dynamically
+const translateTeamName = (teamName, lang) => {
+  if (!teamName || teamName === "TBD" || teamName === "???") {
+    return lang === "fa" ? "نامشخص" : "TBD";
+  }
+  
+  if (teamName.startsWith("Winner Group ")) {
+    const group = teamName.replace("Winner Group ", "");
+    return lang === "fa" ? `قهرمان گروه ${group}` : `Winner Group ${group}`;
+  }
+  if (teamName.startsWith("Runner-up Group ")) {
+    const group = teamName.replace("Runner-up Group ", "");
+    return lang === "fa" ? `تیم دوم گروه ${group}` : `Runner-up Group ${group}`;
+  }
+  if (teamName.startsWith("3rd Group ")) {
+    const group = teamName.replace("3rd Group ", "");
+    return lang === "fa" ? `تیم سوم گروه ${group}` : `3rd Group ${group}`;
+  }
+
+  const teamData = window.teamsData[teamName];
+  if (teamData) {
+    return lang === "fa" ? teamData.nameFa : teamName;
+  }
+  return teamName;
+};
+
 // Seeding setup: Get qualified teams from group standings
 const getQualifiedTeamsFromStandings = () => {
   const winners = [];     // 1st place
   const runnersUp = [];   // 2nd place
   const thirdPlaces = []; // 3rd place
+  const mode = window.bracketViewMode || "prediction";
 
   window.groupsList.forEach(groupLetter => {
-    const standings = window.calculateStandings(groupLetter, window.bracketViewMode || "prediction");
+    const standings = window.calculateStandings(groupLetter, mode);
+    const finished = isGroupFinished(groupLetter);
+
     if (standings.length >= 3) {
-      winners.push({ team: standings[0].name, points: standings[0].pts, gd: standings[0].gd, gf: standings[0].gf });
-      runnersUp.push({ team: standings[1].name, points: standings[1].pts, gd: standings[1].gd, gf: standings[1].gf });
-      thirdPlaces.push({ team: standings[2].name, points: standings[2].pts, gd: standings[2].gd, gf: standings[2].gf });
+      const wName = finished ? standings[0].name : `Winner Group ${groupLetter}`;
+      const rName = finished ? standings[1].name : `Runner-up Group ${groupLetter}`;
+      const tName = finished ? standings[2].name : `3rd Group ${groupLetter}`;
+
+      winners.push({ team: wName, points: standings[0].pts, gd: standings[0].gd, gf: standings[0].gf });
+      runnersUp.push({ team: rName, points: standings[1].pts, gd: standings[1].gd, gf: standings[1].gf });
+      thirdPlaces.push({ team: tName, points: standings[2].pts, gd: standings[2].gd, gf: standings[2].gf });
     }
   });
 
-  // Rank 3rd place teams: Points -> GD -> GF -> Alphabetical
+  // Rank 3rd place teams
   thirdPlaces.sort((a, b) => {
     if (b.points !== a.points) return b.points - a.points;
     if (b.gd !== a.gd) return b.gd - a.gd;
@@ -71,8 +123,6 @@ const seedRound32 = () => {
   const { winners, runnersUp, bestThird } = getQualifiedTeamsFromStandings();
 
   // Matchup configuration
-  // 12 Winners (W[0..11]), 12 Runners-up (R[0..11]), 8 Best Third (T[0..7])
-  // We'll create a stable, competitive mapping:
   const matchups = [
     { t1: winners[0],  t2: bestThird[7] || "3rd Group C/D" },  // M1: Winner A vs 3rd-8
     { t1: runnersUp[1], t2: runnersUp[5] },                   // M2: Runner B vs Runner F
@@ -107,8 +157,8 @@ const syncBracketWithStandings = () => {
     const prevMatch = localState ? localState.round32[idx] : null;
     let winner = null;
 
-    // Preserve winner if that team is still part of the seeded matchup
-    if (prevMatch && prevMatch.winner && (prevMatch.winner === matchup.t1 || prevMatch.winner === matchup.t2)) {
+    // Preserve winner if that team is still part of the seeded matchup and not a placeholder
+    if (prevMatch && prevMatch.winner && (prevMatch.winner === matchup.t1 || prevMatch.winner === matchup.t2) && !isPlaceholder(prevMatch.winner)) {
       winner = prevMatch.winner;
     }
 
@@ -129,16 +179,13 @@ const propagateBracket = () => {
   const state = bracketState;
 
   // Round of 32 -> Round of 16
-  // Match index i in Round 16 takes winners from Round 32 matches (2*i) and (2*i + 1)
   for (let i = 0; i < 8; i++) {
     const w1 = state.round32[2 * i].winner;
     const w2 = state.round32[2 * i + 1].winner;
-    
-    // Check if team names changed in slot
     const prev = state.round16[i];
     let winner = null;
 
-    if (prev && prev.winner && (prev.winner === w1 || prev.winner === w2)) {
+    if (prev && prev.winner && (prev.winner === w1 || prev.winner === w2) && !isPlaceholder(prev.winner)) {
       winner = prev.winner;
     }
 
@@ -156,7 +203,7 @@ const propagateBracket = () => {
     const prev = state.quarters[i];
     let winner = null;
 
-    if (prev && prev.winner && (prev.winner === w1 || prev.winner === w2)) {
+    if (prev && prev.winner && (prev.winner === w1 || prev.winner === w2) && !isPlaceholder(prev.winner)) {
       winner = prev.winner;
     }
 
@@ -174,7 +221,7 @@ const propagateBracket = () => {
     const prev = state.semis[i];
     let winner = null;
 
-    if (prev && prev.winner && (prev.winner === w1 || prev.winner === w2)) {
+    if (prev && prev.winner && (prev.winner === w1 || prev.winner === w2) && !isPlaceholder(prev.winner)) {
       winner = prev.winner;
     }
 
@@ -191,7 +238,7 @@ const propagateBracket = () => {
   const prevFinal = state.final;
   let finalWinner = null;
 
-  if (prevFinal && prevFinal.winner && (prevFinal.winner === f1 || prevFinal.winner === f2)) {
+  if (prevFinal && prevFinal.winner && (prevFinal.winner === f1 || prevFinal.winner === f2) && !isPlaceholder(prevFinal.winner)) {
     finalWinner = prevFinal.winner;
   }
 
@@ -205,13 +252,12 @@ const propagateBracket = () => {
   state.champion = state.final.winner || null;
 };
 
-// Select a winner and advance them
+// Select a winner and advance them (prevent placeholders)
 const advanceTeam = (roundName, matchIndex, teamNum) => {
-  // roundName can be: 'round32', 'round16', 'quarters', 'semis', 'final'
   if (roundName === 'final') {
     const match = bracketState.final;
     const selectedTeam = teamNum === 1 ? match.team1 : match.team2;
-    if (!selectedTeam) return;
+    if (!selectedTeam || isPlaceholder(selectedTeam)) return;
 
     if (match.winner === selectedTeam) {
       match.winner = null; // Toggle off
@@ -224,7 +270,7 @@ const advanceTeam = (roundName, matchIndex, teamNum) => {
 
     const match = roundMatches[matchIndex];
     const selectedTeam = teamNum === 1 ? match.team1 : match.team2;
-    if (!selectedTeam) return;
+    if (!selectedTeam || isPlaceholder(selectedTeam)) return;
 
     if (match.winner === selectedTeam) {
       match.winner = null; // Toggle off
@@ -250,7 +296,7 @@ window.addEventListener("fixturesUpdated", () => {
   syncBracketWithStandings();
 });
 
-// Render the bracket HTML dynamically
+// Render the bracket HTML dynamically (Bilateral / Symmetrical 9-Column Layout)
 const renderBracketView = () => {
   const container = document.getElementById("bracket-view-container");
   if (!container) return;
@@ -258,42 +304,39 @@ const renderBracketView = () => {
   const currentLang = window.currentLanguage || "fa";
   const state = bracketState;
 
-  // Render HTML structure for the bracket rounds
   let html = `<div class="bracket-wrapper">`;
 
-  // Round of 32 (Column 1)
+  // Left Column 1: Round of 32 (Matches 0 - 7)
   html += `<div class="bracket-round">`;
-  state.round32.forEach((match, idx) => {
-    html += renderBracketMatchup('round32', idx, match, currentLang);
-  });
+  for (let idx = 0; idx < 8; idx++) {
+    html += renderBracketMatchup('round32', idx, state.round32[idx], currentLang);
+  }
   html += `</div>`;
 
-  // Round of 16 (Column 2)
+  // Left Column 2: Round of 16 (Matches 0 - 3)
   html += `<div class="bracket-round">`;
-  state.round16.forEach((match, idx) => {
-    html += renderBracketMatchup('round16', idx, match, currentLang);
-  });
+  for (let idx = 0; idx < 4; idx++) {
+    html += renderBracketMatchup('round16', idx, state.round16[idx], currentLang);
+  }
   html += `</div>`;
 
-  // Quarter-finals (Column 3)
+  // Left Column 3: Quarter-finals (Matches 0 - 1)
   html += `<div class="bracket-round">`;
-  state.quarters.forEach((match, idx) => {
-    html += renderBracketMatchup('quarters', idx, match, currentLang);
-  });
+  for (let idx = 0; idx < 2; idx++) {
+    html += renderBracketMatchup('quarters', idx, state.quarters[idx], currentLang);
+  }
   html += `</div>`;
 
-  // Semi-finals (Column 4)
+  // Left Column 4: Semi-finals (Match 0)
   html += `<div class="bracket-round">`;
-  state.semis.forEach((match, idx) => {
-    html += renderBracketMatchup('semis', idx, match, currentLang);
-  });
+  html += renderBracketMatchup('semis', 0, state.semis[0], currentLang);
   html += `</div>`;
 
-  // Final & Champion (Column 5)
-  html += `<div class="bracket-round">`;
+  // Center Column 5: Final & Champion Card
+  html += `<div class="bracket-round final-column">`;
+  html += `<div style="text-align:center; font-weight:800; color:var(--accent); font-size:1.1rem; margin-bottom: 0.5rem;">${currentLang === 'fa' ? 'فینال' : 'FINAL'}</div>`;
   html += renderBracketMatchup('final', 0, state.final, currentLang);
   
-  // Champion Card
   if (state.champion) {
     const team = window.teamsData[state.champion];
     const flagUrl = team ? `https://flagcdn.com/w160/${team.code}.png` : "";
@@ -302,45 +345,80 @@ const renderBracketView = () => {
     html += `
       <div class="champion-card glass-card">
         <h4 style="color:var(--glow); font-weight:800; font-size:1.2rem; margin-bottom: 0.5rem;">🏆 ${window.translations[currentLang].champion} 🏆</h4>
-        <div style="font-size: 1.5rem; font-weight:900;">${teamName}</div>
-        <img src="${flagUrl}" alt="${state.champion}" style="border-radius:6px; border: 1px solid var(--border-color); box-shadow:0 5px 15px rgba(0,0,0,0.5);">
+        <div style="font-size: 1.5rem; font-weight:900; margin-bottom:0.5rem;">${teamName}</div>
+        <img src="${flagUrl}" alt="${state.champion}" style="border-radius:6px; border: 1px solid var(--border-color); box-shadow:0 5px 15px rgba(0,0,0,0.5); width: 120px;">
       </div>
     `;
   }
   html += `</div>`; // End Column 5
 
+  // Right Column 6: Semi-finals (Match 1)
+  html += `<div class="bracket-round">`;
+  html += renderBracketMatchup('semis', 1, state.semis[1], currentLang);
+  html += `</div>`;
+
+  // Right Column 7: Quarter-finals (Matches 2 - 3)
+  html += `<div class="bracket-round">`;
+  for (let idx = 2; idx < 4; idx++) {
+    html += renderBracketMatchup('quarters', idx, state.quarters[idx], currentLang);
+  }
+  html += `</div>`;
+
+  // Right Column 8: Round of 16 (Matches 4 - 7)
+  html += `<div class="bracket-round">`;
+  for (let idx = 4; idx < 8; idx++) {
+    html += renderBracketMatchup('round16', idx, state.round16[idx], currentLang);
+  }
+  html += `</div>`;
+
+  // Right Column 9: Round of 32 (Matches 8 - 15)
+  html += `<div class="bracket-round">`;
+  for (let idx = 8; idx < 16; idx++) {
+    html += renderBracketMatchup('round32', idx, state.round32[idx], currentLang);
+  }
+  html += `</div>`;
+
   html += `</div>`; // End Wrapper
   container.innerHTML = html;
 };
 
-// Helper to render a single matchup block
+// Helper to render a single matchup block (with symmetrical right-side layout support)
 const renderBracketMatchup = (roundName, matchIndex, match, lang) => {
-  const t1 = match.team1;
-  const t2 = match.team2;
+  const t1 = match ? match.team1 : "";
+  const t2 = match ? match.team2 : "";
 
   const team1Data = window.teamsData[t1];
   const team2Data = window.teamsData[t2];
 
-  const t1Name = team1Data ? (lang === "fa" ? team1Data.nameFa : t1) : (t1 || "???");
-  const t2Name = team2Data ? (lang === "fa" ? team2Data.nameFa : t2) : (t2 || "???");
+  const t1Name = translateTeamName(t1, lang);
+  const t2Name = translateTeamName(t2, lang);
 
   const flag1 = team1Data ? `<img src="https://flagcdn.com/w40/${team1Data.code}.png" class="flag-icon">` : "";
   const flag2 = team2Data ? `<img src="https://flagcdn.com/w40/${team2Data.code}.png" class="flag-icon">` : "";
 
-  const isT1Winner = match.winner && match.winner === t1;
-  const isT2Winner = match.winner && match.winner === t2;
+  const isT1Winner = match && match.winner && match.winner === t1;
+  const isT2Winner = match && match.winner && match.winner === t2;
 
-  const t1Class = isT1Winner ? 'winner' : (match.winner ? 'loser' : '');
-  const t2Class = isT2Winner ? 'winner' : (match.winner ? 'loser' : '');
+  const t1Class = (match && match.winner) ? (isT1Winner ? 'winner' : 'loser') : '';
+  const t2Class = (match && match.winner) ? (isT2Winner ? 'winner' : 'loser') : '';
+
+  // Check if this matchup is rendered on the right side of the bracket
+  const isRightSide = 
+    (roundName === 'round32' && matchIndex >= 8) ||
+    (roundName === 'round16' && matchIndex >= 4) ||
+    (roundName === 'quarters' && matchIndex >= 2) ||
+    (roundName === 'semis' && matchIndex === 1);
+  
+  const rightSideClass = isRightSide ? "right-side-card" : "";
 
   return `
     <div class="bracket-matchup">
-      <div class="bracket-team-card ${t1Class}" onclick="window.advanceTeam('${roundName}', ${matchIndex}, 1)">
+      <div class="bracket-team-card ${t1Class} ${rightSideClass}" onclick="window.advanceTeam('${roundName}', ${matchIndex}, 1)">
         ${flag1}
         <span class="team-name-lbl">${t1Name}</span>
         ${isT1Winner ? '<span class="score">✓</span>' : ''}
       </div>
-      <div class="bracket-team-card ${t2Class}" onclick="window.advanceTeam('${roundName}', ${matchIndex}, 2)">
+      <div class="bracket-team-card ${t2Class} ${rightSideClass}" onclick="window.advanceTeam('${roundName}', ${matchIndex}, 2)">
         ${flag2}
         <span class="team-name-lbl">${t2Name}</span>
         ${isT2Winner ? '<span class="score">✓</span>' : ''}

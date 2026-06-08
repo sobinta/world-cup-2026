@@ -957,10 +957,30 @@ body.lang-fa {
 
 .bracket-wrapper {
   display: flex;
-  gap: 4rem;
-  min-width: 1600px;
+  gap: 2.5rem;
+  min-width: 2400px;
   justify-content: space-between;
   padding: 0 2rem;
+}
+
+.final-column {
+  justify-content: center !important;
+  gap: 3rem;
+}
+
+/* Symmetrical Right Side Card Formatting */
+.right-side-card {
+  flex-direction: row-reverse;
+}
+
+.right-side-card .score {
+  margin-left: 0;
+  margin-right: auto;
+}
+
+[dir="rtl"] .right-side-card .score {
+  margin-right: 0;
+  margin-left: auto;
 }
 
 .bracket-round {
