@@ -1,16 +1,36 @@
 // FIFA World Cup 2026 - Knockout Bracket Engine
 
-const BRACKET_KEY = "wc2026_user_bracket";
+const PREDICTION_BRACKET_KEY = "wc2026_user_bracket_prediction";
+const OFFICIAL_BRACKET_KEY = "wc2026_user_bracket_official";
 
-// Initial empty/default bracket state
-// 5 Rounds: Round of 32 (16 matches), Round of 16 (8 matches), Quarter-finals (4 matches), Semi-finals (2 matches), Final (1 match)
-let bracketState = {
+const getBracketKey = () => {
+  const mode = window.bracketViewMode || "prediction";
+  return mode === "official" ? OFFICIAL_BRACKET_KEY : PREDICTION_BRACKET_KEY;
+};
+
+const createEmptyBracketState = () => ({
   round32: Array(16).fill(null).map((_, i) => ({ team1: "", team2: "", winner: null })),
   round16: Array(8).fill(null).map((_, i) => ({ team1: "", team2: "", winner: null })),
   quarters: Array(4).fill(null).map((_, i) => ({ team1: "", team2: "", winner: null })),
   semis: Array(2).fill(null).map((_, i) => ({ team1: "", team2: "", winner: null })),
   final: { team1: "", team2: "", winner: null },
   champion: null
+});
+
+let bracketState = createEmptyBracketState();
+
+const loadActiveBracketState = () => {
+  const key = getBracketKey();
+  const saved = localStorage.getItem(key);
+  if (saved) {
+    try {
+      bracketState = JSON.parse(saved);
+      return;
+    } catch(e) {
+      console.error("Error loading bracket state", e);
+    }
+  }
+  bracketState = createEmptyBracketState();
 };
 
 // Seeding setup: Get qualified teams from group standings
@@ -20,7 +40,7 @@ const getQualifiedTeamsFromStandings = () => {
   const thirdPlaces = []; // 3rd place
 
   window.groupsList.forEach(groupLetter => {
-    const standings = window.calculateStandings(groupLetter);
+    const standings = window.calculateStandings(groupLetter, window.bracketViewMode || "prediction");
     if (standings.length >= 3) {
       winners.push({ team: standings[0].name, points: standings[0].pts, gd: standings[0].gd, gf: standings[0].gf });
       runnersUp.push({ team: standings[1].name, points: standings[1].pts, gd: standings[1].gd, gf: standings[1].gf });
@@ -77,16 +97,8 @@ const seedRound32 = () => {
 
 // Sync bracket with standings, preserving predictions if possible
 const syncBracketWithStandings = () => {
-  const savedState = localStorage.getItem(BRACKET_KEY);
-  let localState = null;
-
-  if (savedState) {
-    try {
-      localState = JSON.parse(savedState);
-    } catch(e) {
-      console.error(e);
-    }
-  }
+  loadActiveBracketState();
+  const localState = JSON.parse(JSON.stringify(bracketState));
 
   const seeded = seedRound32();
 
@@ -230,7 +242,7 @@ const advanceTeam = (roundName, matchIndex, teamNum) => {
 };
 
 const saveBracket = () => {
-  localStorage.setItem(BRACKET_KEY, JSON.stringify(bracketState));
+  localStorage.setItem(getBracketKey(), JSON.stringify(bracketState));
 };
 
 // Listen for standings updates to re-seed Round of 32

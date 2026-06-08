@@ -79,21 +79,21 @@ const groupsList = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L"];
 // 16 Stadiums for FIFA World Cup 2026
 const stadiumsData = [
   { name: "Azteca Stadium", city: "Mexico City", country: "Mexico", capacity: 87523, matches: 5, image: "https://images.unsplash.com/photo-1611005085351-403487c53d1e?auto=format&fit=crop&w=800&q=80" },
-  { name: "MetLife Stadium", city: "East Rutherford", country: "USA", capacity: 82500, matches: 8, image: "https://images.unsplash.com/photo-1593122493399-52e6c5597ea9?auto=format&fit=crop&w=800&q=80" },
+  { name: "MetLife Stadium", city: "East Rutherford", country: "USA", capacity: 82500, matches: 8, image: "https://images.unsplash.com/photo-1510051640316-ecc74021573b?auto=format&fit=crop&w=800&q=80" },
   { name: "AT&T Stadium", city: "Arlington", country: "USA", capacity: 80000, matches: 9, image: "https://images.unsplash.com/photo-1589330694653-ded6df53f7ec?auto=format&fit=crop&w=800&q=80" },
   { name: "Arrowhead Stadium", city: "Kansas City", country: "USA", capacity: 76416, matches: 6, image: "https://images.unsplash.com/photo-1524146122405-5900067ff06c?auto=format&fit=crop&w=800&q=80" },
   { name: "NRG Stadium", city: "Houston", country: "USA", capacity: 72220, matches: 7, image: "https://images.unsplash.com/photo-1600250395178-40da752e558e?auto=format&fit=crop&w=800&q=80" },
-  { name: "Mercedes-Benz Stadium", city: "Atlanta", country: "USA", capacity: 71000, matches: 8, image: "https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?auto=format&fit=crop&w=800&q=80" },
-  { name: "SoFi Stadium", city: "Inglewood", country: "USA", capacity: 70240, matches: 8, image: "https://images.unsplash.com/photo-1618083707368-b3823daa2726?auto=format&fit=crop&w=800&q=80" },
+  { name: "Mercedes-Benz Stadium", city: "Atlanta", country: "USA", capacity: 71000, matches: 8, image: "https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&w=800&q=80" },
+  { name: "SoFi Stadium", city: "Inglewood", country: "USA", capacity: 70240, matches: 8, image: "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?auto=format&fit=crop&w=800&q=80" },
   { name: "Lincoln Financial Field", city: "Philadelphia", country: "USA", capacity: 69796, matches: 6, image: "https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?auto=format&fit=crop&w=800&q=80" },
   { name: "Lumen Field", city: "Seattle", country: "USA", capacity: 69000, matches: 6, image: "https://images.unsplash.com/photo-1504156806649-6f1fa4357c74?auto=format&fit=crop&w=800&q=80" },
   { name: "Levi's Stadium", city: "Santa Clara", country: "USA", capacity: 68500, matches: 6, image: "https://images.unsplash.com/photo-1518063319789-7217e6706b04?auto=format&fit=crop&w=800&q=80" },
-  { name: "Gillette Stadium", city: "Foxborough", country: "USA", capacity: 65878, matches: 7, image: "https://images.unsplash.com/photo-1564349683136-77e08dba1ef7?auto=format&fit=crop&w=800&q=80" },
+  { name: "Gillette Stadium", city: "Foxborough", country: "USA", capacity: 65878, matches: 7, image: "https://images.unsplash.com/photo-1599156740645-ec7e462c1d81?auto=format&fit=crop&w=800&q=80" },
   { name: "Hard Rock Stadium", city: "Miami Gardens", country: "USA", capacity: 64767, matches: 7, image: "https://images.unsplash.com/photo-1568194157720-8ece7b1fc811?auto=format&fit=crop&w=800&q=80" },
   { name: "BC Place", city: "Vancouver", country: "Canada", capacity: 54500, matches: 7, image: "https://images.unsplash.com/photo-1489945052260-4f21e52168f9?auto=format&fit=crop&w=800&q=80" },
   { name: "BBVA Stadium", city: "Guadalupe", country: "Mexico", capacity: 53500, matches: 4, image: "https://images.unsplash.com/photo-1563918972621-c4832dfab2e1?auto=format&fit=crop&w=800&q=80" },
   { name: "Akron Stadium", city: "Zapopan", country: "Mexico", capacity: 48071, matches: 4, image: "https://images.unsplash.com/photo-1517747614396-d21a78b850e8?auto=format&fit=crop&w=800&q=80" },
-  { name: "BMO Field", city: "Toronto", country: "Canada", capacity: 45736, matches: 6, image: "https://images.unsplash.com/photo-1505373877841-8d25f7d46678?auto=format&fit=crop&w=800&q=80" }
+  { name: "BMO Field", city: "Toronto", country: "Canada", capacity: 45736, matches: 6, image: "https://images.unsplash.com/photo-1624887009213-040141b7145b?auto=format&fit=crop&w=800&q=80" }
 ];
 
 // World Cup Trivia Questions
@@ -212,7 +212,13 @@ const translations = {
     themeGold: "Golden Trophy",
     themeLightMint: "Light Mint",
     themeLightCream: "Light Cream",
-    quickPredictInfo: "Fill group results to automatically seed the Bracket, or click directly on the bracket matches to advance teams manually!"
+    quickPredictInfo: "Fill group results to automatically seed the Bracket, or click directly on the bracket matches to advance teams manually!",
+    standingsOfficial: "Official Standings",
+    standingsPrediction: "Predicted Standings",
+    adminModeBtn: "Record Final Results (Admin)",
+    adminModeActiveText: "Admin Mode: Active",
+    bracketPredicted: "Predicted Bracket",
+    bracketOfficial: "Official Bracket"
   },
   fa: {
     title: "جام جهانی ۲۰۲۶",
@@ -289,7 +295,13 @@ const translations = {
     themeGold: "جام طلایی",
     themeLightMint: "نعنایی روشن",
     themeLightCream: "کرمی روشن",
-    quickPredictInfo: "نتایج مرحله گروهی را پر کنید تا نمودار حذفی خودکار چیده شود، یا مستقیم روی تیم‌های نمودار حذفی کلیک کنید تا برنده صعود کند!"
+    quickPredictInfo: "نتایج مرحله گروهی را پر کنید تا نمودار حذفی خودکار چیده شود، یا مستقیم روی تیم‌های نمودار حذفی کلیک کنید تا برنده صعود کند!",
+    standingsOfficial: "جدول رده‌بندی رسمی",
+    standingsPrediction: "جدول پیش‌بینی شما",
+    adminModeBtn: "ثبت نتایج نهایی (مدیر)",
+    adminModeActiveText: "حالت مدیریت: فعال",
+    bracketPredicted: "نمودار پیش‌بینی شما",
+    bracketOfficial: "نمودار رسمی مسابقات"
   }
 };
 

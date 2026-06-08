@@ -14,13 +14,16 @@ let liveMatchState = {
 const startLiveSimulation = () => {
   if (liveMatchState.active) return;
 
-  // Pick a match that hasn't been predicted yet (or pick a random one if all predicted)
-  let eligibleMatches = window.currentPredictions.filter(
+  const isOfficial = window.standingsViewMode === "official";
+  const sourceArray = isOfficial ? window.officialResults : window.currentPredictions;
+
+  // Pick a match that hasn't been played/predicted yet
+  let eligibleMatches = sourceArray.filter(
     m => m.score1 === null || m.score2 === null || m.score1 === "" || m.score2 === ""
   );
 
   if (eligibleMatches.length === 0) {
-    eligibleMatches = window.currentPredictions; // Fallback to any match
+    eligibleMatches = sourceArray; // Fallback to any match
   }
 
   const selectedMatch = eligibleMatches[Math.floor(Math.random() * eligibleMatches.length)];
@@ -67,13 +70,18 @@ const stopLiveSimulation = (completeMatch = false) => {
   const currentLang = window.currentLanguage || "fa";
 
   if (completeMatch && liveMatchState.match) {
-    // Save simulated score to predictions
     const matchId = liveMatchState.match.id;
-    const matchIndex = window.currentPredictions.findIndex(m => m.id === matchId);
+    const isOfficial = window.standingsViewMode === "official";
+    const sourceArray = isOfficial ? window.officialResults : window.currentPredictions;
+    const matchIndex = sourceArray.findIndex(m => m.id === matchId);
     if (matchIndex !== -1) {
-      window.currentPredictions[matchIndex].score1 = liveMatchState.score1;
-      window.currentPredictions[matchIndex].score2 = liveMatchState.score2;
-      window.savePredictions(); // Updates storage and fires event
+      sourceArray[matchIndex].score1 = liveMatchState.score1;
+      sourceArray[matchIndex].score2 = liveMatchState.score2;
+      if (isOfficial) {
+        window.saveOfficialResults();
+      } else {
+        window.savePredictions();
+      }
     }
     addLiveEvent(90, "Full Time!", "پایان بازی!");
   } else {

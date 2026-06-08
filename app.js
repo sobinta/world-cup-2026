@@ -3,6 +3,10 @@
 let currentLanguage = "fa"; // Default language
 let currentTheme = "emerald";
 
+let standingsViewMode = "official"; // "official" or "prediction"
+let adminModeActive = false;
+let bracketViewMode = "prediction"; // "prediction" or "official"
+
 // Track trivia state
 let triviaState = {
   currentQuestionIndex: 0,
@@ -144,6 +148,67 @@ const setLanguage = (lang) => {
   window.renderBracketView();
 };
 
+const switchStandingsViewMode = (mode) => {
+  standingsViewMode = mode;
+  window.standingsViewMode = mode;
+  
+  const tabOfficial = document.getElementById("mode-tab-official");
+  const tabPrediction = document.getElementById("mode-tab-prediction");
+  if (tabOfficial) tabOfficial.classList.toggle("active", mode === "official");
+  if (tabPrediction) tabPrediction.classList.toggle("active", mode === "prediction");
+  
+  const adminBtn = document.getElementById("admin-mode-toggle");
+  if (adminBtn) {
+    adminBtn.style.display = mode === "official" ? "flex" : "none";
+  }
+
+  updateStandingsTables();
+};
+
+const toggleAdminMode = () => {
+  adminModeActive = !adminModeActive;
+  window.adminModeActive = adminModeActive;
+  
+  const adminBtn = document.getElementById("admin-mode-toggle");
+  const adminText = document.getElementById("admin-toggle-text");
+  const currentLang = window.currentLanguage || "fa";
+  
+  if (adminBtn && adminText) {
+    if (adminModeActive) {
+      adminBtn.classList.add("active");
+      adminBtn.querySelector("i").className = "fa-solid fa-lock-open";
+      adminText.textContent = window.translations[currentLang].adminModeActiveText;
+    } else {
+      adminBtn.classList.remove("active");
+      adminBtn.querySelector("i").className = "fa-solid fa-lock";
+      adminText.textContent = window.translations[currentLang].adminModeBtn;
+    }
+  }
+  
+  updateStandingsTables();
+};
+
+const switchBracketViewMode = (mode) => {
+  bracketViewMode = mode;
+  window.bracketViewMode = mode;
+  
+  const tabOfficial = document.getElementById("bracket-tab-official");
+  const tabPrediction = document.getElementById("bracket-tab-prediction");
+  if (tabOfficial) tabOfficial.classList.toggle("active", mode === "official");
+  if (tabPrediction) tabPrediction.classList.toggle("active", mode === "prediction");
+  
+  window.syncBracketWithStandings();
+  window.renderBracketView();
+};
+
+// Expose modes and functions
+window.standingsViewMode = standingsViewMode;
+window.adminModeActive = adminModeActive;
+window.bracketViewMode = bracketViewMode;
+window.switchStandingsViewMode = switchStandingsViewMode;
+window.toggleAdminMode = toggleAdminMode;
+window.switchBracketViewMode = switchBracketViewMode;
+
 // --- Router (Tab Switching) ---
 const initRouter = () => {
   const navItems = document.querySelectorAll(".nav-item");
@@ -226,7 +291,7 @@ const initGroupsPage = () => {
   let html = "";
   window.groupsList.forEach(groupLetter => {
     // Calculate standings to get current ranking in group
-    const standings = window.calculateStandings(groupLetter);
+    const standings = window.calculateStandings(groupLetter, standingsViewMode);
 
     html += `
       <div class="glass-card group-card" onclick="window.expandGroup('${groupLetter}')">
@@ -296,7 +361,7 @@ window.switchModalTab = (event, tabName, groupLetter) => {
 // Render Standing Table inside Modal
 const renderExpandedGroupTable = (groupLetter) => {
   const container = document.getElementById("expanded-group-content");
-  const standings = window.calculateStandings(groupLetter);
+  const standings = window.calculateStandings(groupLetter, standingsViewMode);
   const dict = window.translations[currentLanguage];
 
   let tableHtml = `
@@ -359,7 +424,8 @@ const renderExpandedGroupTable = (groupLetter) => {
 // Render Matches inside Modal
 const renderExpandedGroupMatches = (groupLetter) => {
   const container = document.getElementById("expanded-group-content");
-  const groupMatches = window.currentPredictions.filter(m => m.group === groupLetter);
+  const sourceMatches = standingsViewMode === "prediction" ? window.currentPredictions : window.officialResults;
+  const groupMatches = sourceMatches.filter(m => m.group === groupLetter);
 
   let matchesHtml = `<div class="matches-list">`;
 
@@ -373,9 +439,28 @@ const renderExpandedGroupMatches = (groupLetter) => {
     const flag1 = t1 ? `https://flagcdn.com/w40/${t1.code}.png` : "";
     const flag2 = t2 ? `https://flagcdn.com/w40/${t2.code}.png` : "";
 
-    const scoreText = (match.score1 !== null && match.score2 !== null && match.score1 !== "" && match.score2 !== "")
-      ? `<span style="font-size:1.6rem; font-weight:800; color:var(--accent); letter-spacing:5px;">${match.score1} - ${match.score2}</span>`
-      : `<span style="color:var(--text-muted); font-size:1rem; font-weight:600;">VS / در مقابل</span>`;
+    let scoreText = "";
+    if (standingsViewMode === "official" && adminModeActive) {
+      const val1 = match.score1 !== null ? match.score1 : "";
+      const val2 = match.score2 !== null ? match.score2 : "";
+      scoreText = `
+        <div style="display:flex; align-items:center; gap:0.3rem; justify-content:center;">
+          <input type="number" min="0" max="99" class="score-input" 
+            value="${val1}"
+            style="width: 45px; text-align: center; padding: 4px; font-size: 1rem; border-radius: 4px;"
+            onchange="window.saveOfficialScore('${match.id}', 1, this.value)">
+          <span style="font-weight:700; color:var(--text-muted);">:</span>
+          <input type="number" min="0" max="99" class="score-input" 
+            value="${val2}"
+            style="width: 45px; text-align: center; padding: 4px; font-size: 1rem; border-radius: 4px;"
+            onchange="window.saveOfficialScore('${match.id}', 2, this.value)">
+        </div>
+      `;
+    } else {
+      scoreText = (match.score1 !== null && match.score2 !== null && match.score1 !== "" && match.score2 !== "")
+        ? `<span style="font-size:1.6rem; font-weight:800; color:var(--accent); letter-spacing:5px;">${match.score1} - ${match.score2}</span>`
+        : `<span style="color:var(--text-muted); font-size:1rem; font-weight:600;">VS / در مقابل</span>`;
+    }
 
     matchesHtml += `
       <div class="match-card">
@@ -865,8 +950,9 @@ window.showStadiumMatches = (stadiumName) => {
   const currentLang = window.currentLanguage || "fa";
   modalTitle.textContent = currentLang === "fa" ? `بازی‌های ورزشگاه ${stadiumName}` : `Matches at ${stadiumName}`;
 
-  // Filter matches played at this stadium
-  const stadiumMatches = window.currentPredictions.filter(m => m.stadium === stadiumName);
+  // Filter matches played at this stadium from appropriate source
+  const sourceMatches = standingsViewMode === "prediction" ? window.currentPredictions : window.officialResults;
+  const stadiumMatches = sourceMatches.filter(m => m.stadium === stadiumName);
 
   let html = "";
   if (stadiumMatches.length === 0) {

@@ -1376,7 +1376,7 @@ body.lang-fa {
     color: #000000 !important;
     font-family: 'Outfit', 'Vazirmatn', sans-serif !important;
   }
-  .sidebar, .action-btn, .theme-selector, .lang-toggle-btn, .print-btn, .pulse-indicator, .score-input, .quiz-options, .compare-selectors, .live-events-feed, .close-modal-btn, .modal-tabs {
+  .sidebar, .action-btn, .theme-selector, .lang-toggle-btn, .print-btn, .pulse-indicator, .score-input, .quiz-options, .compare-selectors, .live-events-feed, .close-modal-btn, .modal-tabs, .view-mode-selector, .bracket-mode-selector-wrapper {
     display: none !important;
   }
   .app-container {
@@ -1449,4 +1449,81 @@ body.lang-fa {
 
 .score-input-print-val {
   display: none;
+}
+
+/* --- View Mode Selector Segmented Controls --- */
+.view-mode-selector {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  padding: 0.8rem 1.2rem;
+  background: rgba(var(--accent-rgb), 0.05);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.mode-tabs {
+  display: flex;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 4px;
+  border-radius: 8px;
+  border: 1px solid rgba(var(--accent-rgb), 0.1);
+}
+
+.mode-tab-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  padding: 0.6rem 1.2rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 0.95rem;
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mode-tab-btn:hover {
+  color: var(--text-main);
+}
+
+.mode-tab-btn.active {
+  color: var(--text-main);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 0 10px rgba(var(--glow-rgb), 0.15);
+}
+
+.admin-btn {
+  background: rgba(255, 56, 96, 0.1);
+  border: 1px solid rgba(255, 56, 96, 0.3);
+  color: #ff3860;
+  padding: 0.6rem 1.2rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 0.95rem;
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.admin-btn:hover, .admin-btn.active {
+  background: #ff3860;
+  color: #ffffff;
+  border-color: #ff3860;
+  box-shadow: 0 0 15px rgba(255, 56, 96, 0.4);
+}
+
+.admin-btn.active {
+  background: #23d160;
+  border-color: #23d160;
+  color: #ffffff;
+  box-shadow: 0 0 15px rgba(35, 209, 96, 0.4);
 }

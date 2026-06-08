@@ -192,6 +192,24 @@
           <p data-trans="groupDetails">برای مشاهده بازی‌ها و رده‌بندی هر گروه، روی کارت مربوطه کلیک کنید</p>
         </div>
 
+        <!-- Segmented Control for Official vs. Prediction Standings & Admin Mode -->
+        <div class="view-mode-selector glass-card">
+          <div class="mode-tabs">
+            <button id="mode-tab-official" class="mode-tab-btn active" onclick="window.switchStandingsViewMode('official')">
+              <i class="fa-solid fa-trophy"></i>
+              <span data-trans="standingsOfficial">نتایج و جدول رسمی</span>
+            </button>
+            <button id="mode-tab-prediction" class="mode-tab-btn" onclick="window.switchStandingsViewMode('prediction')">
+              <i class="fa-solid fa-square-poll-horizontal"></i>
+              <span data-trans="standingsPrediction">جدول پیش‌بینی شما</span>
+            </button>
+          </div>
+          <button id="admin-mode-toggle" class="admin-btn" onclick="window.toggleAdminMode()">
+            <i class="fa-solid fa-lock"></i>
+            <span id="admin-toggle-text" data-trans="adminModeBtn">ثبت نتایج نهایی (مدیر)</span>
+          </button>
+        </div>
+
         <div id="groups-list-container" class="groups-grid">
           <!-- Populated by JavaScript -->
         </div>
@@ -224,6 +242,22 @@
         <div class="page-header">
           <h2 data-trans="bracketTitle">نمودار حذفی مسابقات</h2>
           <p data-trans="bracketSubtitle">روی تیم مورد نظر خود کلیک کنید تا به مرحله بعدی صعود کند!</p>
+        </div>
+
+        <!-- Segmented Control for Predicted vs. Official Bracket -->
+        <div class="bracket-mode-selector-wrapper">
+          <div class="view-mode-selector glass-card" style="margin-bottom: 1.5rem; justify-content: center;">
+            <div class="mode-tabs">
+              <button id="bracket-tab-prediction" class="mode-tab-btn active" onclick="window.switchBracketViewMode('prediction')">
+                <i class="fa-solid fa-square-poll-horizontal"></i>
+                <span data-trans="bracketPredicted">نمودار پیش‌بینی شما</span>
+              </button>
+              <button id="bracket-tab-official" class="mode-tab-btn" onclick="window.switchBracketViewMode('official')">
+                <i class="fa-solid fa-trophy"></i>
+                <span data-trans="bracketOfficial">نمودار رسمی مسابقات</span>
+              </button>
+            </div>
+          </div>
         </div>
 
         <!-- Scrollable bracket board container -->

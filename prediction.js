@@ -1,53 +1,77 @@
 // FIFA World Cup 2026 - Prediction and Standings Engine
 
 const PREDICTIONS_KEY = "wc2026_user_predictions";
+const OFFICIAL_RESULTS_KEY = "wc2026_official_results";
 
-// Load predictions from LocalStorage or use initial fixtures
+// Load user predictions
 const loadPredictions = () => {
   const saved = localStorage.getItem(PREDICTIONS_KEY);
   if (saved) {
     try {
       const parsed = JSON.parse(saved);
-      // Ensure all initial fixtures are present even if layout changed
       return window.initialFixtures.map(fixture => {
         const found = parsed.find(f => f.id === fixture.id);
         if (found) {
           return { ...fixture, score1: found.score1, score2: found.score2 };
         }
-        return fixture;
+        return { ...fixture, score1: null, score2: null };
       });
     } catch (e) {
-      console.error("Error loading predictions, resetting...", e);
+      console.error("Error loading predictions", e);
     }
   }
-  return JSON.parse(JSON.stringify(window.initialFixtures));
+  // Default predictions: all null (empty)
+  return window.initialFixtures.map(f => ({ ...f, score1: null, score2: null }));
+};
+
+// Load official results (defaults to empty since games haven't started)
+const loadOfficialResults = () => {
+  const saved = localStorage.getItem(OFFICIAL_RESULTS_KEY);
+  if (saved) {
+    try {
+      const parsed = JSON.parse(saved);
+      return window.initialFixtures.map(fixture => {
+        const found = parsed.find(f => f.id === fixture.id);
+        if (found) {
+          return { ...fixture, score1: found.score1, score2: found.score2 };
+        }
+        return { ...fixture, score1: null, score2: null };
+      });
+    } catch (e) {
+      console.error("Error loading official results", e);
+    }
+  }
+  return window.initialFixtures.map(f => ({ ...f, score1: null, score2: null }));
 };
 
 let currentPredictions = loadPredictions();
+let officialResults = loadOfficialResults();
 
-// Save to LocalStorage
 const savePredictions = () => {
   localStorage.setItem(PREDICTIONS_KEY, JSON.stringify(currentPredictions));
-  // Fire update event so other modules know matches changed
   window.dispatchEvent(new CustomEvent("fixturesUpdated"));
 };
 
-// Reset all predictions
+const saveOfficialResults = () => {
+  localStorage.setItem(OFFICIAL_RESULTS_KEY, JSON.stringify(officialResults));
+  window.dispatchEvent(new CustomEvent("fixturesUpdated"));
+};
+
 const resetAllPredictions = () => {
-  currentPredictions = JSON.parse(JSON.stringify(window.initialFixtures));
+  currentPredictions = window.initialFixtures.map(f => ({ ...f, score1: null, score2: null }));
   savePredictions();
 };
 
-// Simulate all group matches randomly but realistically
+const resetAllOfficialResults = () => {
+  officialResults = window.initialFixtures.map(f => ({ ...f, score1: null, score2: null }));
+  saveOfficialResults();
+};
+
+// Simulate predictions
 const simulateAllGroupMatches = () => {
-  // Realistic soccer score distributions (higher chance of 0, 1, 2 goals)
   const getRandomScore = (ratingDiff) => {
-    // ratingDiff = team1Ranking - team2Ranking (lower rank is better)
-    // Adjust probability based on FIFA rank difference
-    const lambda = 1.3 - (ratingDiff / 60); // Average goals per team
+    const lambda = 1.3 - (ratingDiff / 60);
     const boundedLambda = Math.max(0.4, Math.min(3.0, lambda));
-    
-    // Poisson distribution approximation
     const L = Math.exp(-boundedLambda);
     let k = 0;
     let p = 1.0;
@@ -61,7 +85,6 @@ const simulateAllGroupMatches = () => {
   currentPredictions.forEach(match => {
     const t1 = window.teamsData[match.team1];
     const t2 = window.teamsData[match.team2];
-    
     if (t1 && t2) {
       const diff = t1.ranking - t2.ranking;
       match.score1 = getRandomScore(diff);
@@ -75,9 +98,8 @@ const simulateAllGroupMatches = () => {
   savePredictions();
 };
 
-// Calculate standings for a specific group based on predictions
-const calculateStandings = (groupLetter) => {
-  // Initialize table rows for group teams
+// Calculate standings (type = "official" or "prediction")
+const calculateStandings = (groupLetter, type = "official") => {
   const groupTeams = Object.keys(window.teamsData).filter(
     teamName => window.teamsData[teamName].group === groupLetter
   );
@@ -97,18 +119,16 @@ const calculateStandings = (groupLetter) => {
     };
   });
 
-  // Calculate stats from predicted matches
-  const groupMatches = currentPredictions.filter(m => m.group === groupLetter);
+  const sourceData = type === "prediction" ? currentPredictions : officialResults;
+  const groupMatches = sourceData.filter(m => m.group === groupLetter);
 
   groupMatches.forEach(match => {
     const s1 = match.score1;
     const s2 = match.score2;
 
-    // Check if score is entered (not null, not undefined, and not empty string)
     if (s1 !== null && s2 !== null && s1 !== "" && s2 !== "") {
       const g1 = parseInt(s1, 10);
       const g2 = parseInt(s2, 10);
-
       if (isNaN(g1) || isNaN(g2)) return;
 
       const t1 = match.team1;
@@ -140,16 +160,10 @@ const calculateStandings = (groupLetter) => {
     }
   });
 
-  // Calculate Goal Difference
   Object.keys(standings).forEach(team => {
     standings[team].gd = standings[team].gf - standings[team].ga;
   });
 
-  // Convert to array and sort according to FIFA rules:
-  // 1. Points
-  // 2. Goal Difference
-  // 3. Goals For
-  // 4. Alphabetical (fallback)
   const standingsArray = Object.values(standings);
   standingsArray.sort((a, b) => {
     if (b.pts !== a.pts) return b.pts - a.pts;
@@ -161,7 +175,6 @@ const calculateStandings = (groupLetter) => {
   return standingsArray;
 };
 
-// Calculate count of predicted matches for completion tracking
 const getPredictionProgress = () => {
   const predicted = currentPredictions.filter(
     m => m.score1 !== null && m.score2 !== null && m.score1 !== "" && m.score2 !== ""
@@ -170,10 +183,29 @@ const getPredictionProgress = () => {
   return { predicted, total, percent: Math.round((predicted / total) * 100) };
 };
 
+const saveOfficialScore = (matchId, teamNum, scoreVal) => {
+  const matchIndex = officialResults.findIndex(m => m.id === matchId);
+  if (matchIndex === -1) return;
+
+  const val = scoreVal === "" ? null : parseInt(scoreVal, 10);
+
+  if (teamNum === 1) {
+    officialResults[matchIndex].score1 = val;
+  } else {
+    officialResults[matchIndex].score2 = val;
+  }
+
+  saveOfficialResults();
+};
+
 // Expose elements to window
 window.currentPredictions = currentPredictions;
+window.officialResults = officialResults;
 window.savePredictions = savePredictions;
+window.saveOfficialResults = saveOfficialResults;
 window.resetAllPredictions = resetAllPredictions;
+window.resetAllOfficialResults = resetAllOfficialResults;
 window.simulateAllGroupMatches = simulateAllGroupMatches;
 window.calculateStandings = calculateStandings;
 window.getPredictionProgress = getPredictionProgress;
+window.saveOfficialScore = saveOfficialScore;
